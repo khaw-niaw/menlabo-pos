@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MENLABO POS">
+  <title>MENLABO POS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ========== NAVIGATION BAR ========== -->
+  <nav id="navbar">
+    <div class="nav-left">
+      <div class="logo">
+        <span class="logo-main">MENLABO</span>
+        <span class="logo-sub">POS</span>
+      </div>
+    </div>
+    <div class="nav-center">
+      <button class="nav-btn active" data-view="floor">
+        <span class="nav-icon">🍜</span>
+        <span class="nav-label-th">ฟลอร์</span>
+        <span class="nav-label-ja">フロア</span>
+      </button>
+      <button class="nav-btn" data-view="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label-th">แดชบอร์ด</span>
+        <span class="nav-label-ja">分析</span>
+      </button>
+      <button class="nav-btn" data-view="settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label-th">ตั้งค่า</span>
+        <span class="nav-label-ja">設定</span>
+      </button>
+    </div>
+    <div class="nav-right">
+      <div class="clock" id="clock">12:00</div>
+      <div class="date" id="date-display">2026/03/02</div>
+    </div>
+  </nav>
+
+  <!-- ========== FLOOR VIEW ========== -->
+  <div id="floor-view" class="view active">
+    <div class="floor-container">
+
+      <!-- Left: Floor Map -->
+      <div class="floor-map">
+        <div class="floor-section">
+          <h3 class="section-title">
+            <span class="th">เคาน์เตอร์</span>
+            <span class="ja">カウンター</span>
+          </h3>
+          <div class="counter-grid">
+            <button class="seat-btn available" data-id="C1"><span class="seat-id">C1</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn available" data-id="C2"><span class="seat-id">C2</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn available" data-id="C3"><span class="seat-id">C3</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn available" data-id="C4"><span class="seat-id">C4</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn available" data-id="C5"><span class="seat-id">C5</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn available" data-id="C6"><span class="seat-id">C6</span><span
+                class="seat-link"></span><span class="seat-time"></span></button>
+          </div>
+        </div>
+
+        <div class="floor-section">
+          <h3 class="section-title">
+            <span class="th">โต๊ะ</span>
+            <span class="ja">テーブル</span>
+          </h3>
+          <div class="table-grid">
+            <button class="seat-btn table-btn available" data-id="T1"><span class="seat-id">T1</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn table-btn available" data-id="T2"><span class="seat-id">T2</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn table-btn available" data-id="T3"><span class="seat-id">T3</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn table-btn available" data-id="T4"><span class="seat-id">T4</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn table-btn available" data-id="T5"><span class="seat-id">T5</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+            <button class="seat-btn table-btn available" data-id="T6"><span class="seat-id">T6</span><span
+                class="seat-cap">4</span><span class="seat-link"></span><span class="seat-time"></span></button>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+          <span class="legend-item"><span class="dot available"></span>ว่าง<small>空席</small></span>
+          <span class="legend-item"><span class="dot occupied"></span>กำลังใช้<small>利用中</small></span>
+          <span class="legend-item"><span class="dot pending"></span>รอชำระ<small>会計待ち</small></span>
+        </div>
+
+        <!-- Multi-select Action Bar -->
+        <div id="selection-bar" class="selection-bar hidden">
+          <div class="selection-info">
+            <span class="th">เลือกแล้ว:</span><span class="ja">選択中:</span>
+            <strong id="selected-ids"></strong>
+          </div>
+          <div class="selection-actions">
+            <button class="btn btn-cancel btn-sm" id="btn-clear-selection">
+              <span class="th">ล้าง</span><span class="ja">クリア</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-group-checkin">
+              <span class="th">เช็คอินกลุ่ม</span><span class="ja">グループ入店</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Detail Panel -->
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-empty">
+          <div class="detail-empty-icon">👈</div>
+          <p class="th">เลือกที่นั่งหรือโต๊ะ</p>
+          <p class="ja">テーブルまたは席を選択</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DASHBOARD VIEW ========== -->
+  <div id="dashboard-view" class="view">
+    <div class="dashboard-container">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="card-icon">💰</div>
+          <div class="card-value" id="dash-revenue">฿0</div>
+          <div class="card-label"><span class="th">ยอดขายวันนี้</span><span class="ja">本日の売上</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">👥</div>
+          <div class="card-value" id="dash-guests">0</div>
+          <div class="card-label"><span class="th">จำนวนลูกค้า</span><span class="ja">来店人数</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">🧾</div>
+          <div class="card-value" id="dash-groups">0</div>
+          <div class="card-label"><span class="th">จำนวนกลุ่ม</span><span class="ja">来店組数</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">💵</div>
+          <div class="card-value" id="dash-avg-spend">฿0</div>
+          <div class="card-label"><span class="th">ค่าใช้จ่ายเฉลี่ย/คน</span><span class="ja">客単価</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">⏱️</div>
+          <div class="card-value" id="dash-avg-stay">0 นาที</div>
+          <div class="card-label"><span class="th">เวลาเฉลี่ย</span><span class="ja">平均滞在時間</span></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon">🍜</div>
+          <div class="card-value" id="dash-total-items">0</div>
+          <div class="card-label"><span class="th">รายการที่สั่ง</span><span class="ja">注文数</span></div>
+        </div>
+      </div>
+
+      <!-- Charts Area -->
+      <div class="charts-area">
+        <div class="chart-panel">
+          <h3><span class="th">ยอดขายตามช่วงเวลา</span> <span class="ja">時間帯別売上</span></h3>
+          <div class="chart-container" id="hourly-chart"></div>
+        </div>
+        <div class="chart-panel">
+          <h3><span class="th">เมนูยอดนิยม</span> <span class="ja">メニュー別売上</span></h3>
+          <div class="chart-container" id="menu-ranking"></div>
+        </div>
+        <div class="chart-panel">
+          <h3><span class="th">ช่องทางชำระเงิน</span> <span class="ja">支払方法</span></h3>
+          <div class="chart-container" id="payment-chart"></div>
+        </div>
+        <div class="chart-panel">
+          <h3><span class="th">สัญชาติลูกค้า</span> <span class="ja">国籍別</span></h3>
+          <div class="chart-container" id="nationality-chart"></div>
+        </div>
+      </div>
+
+      <!-- Monthly Chart -->
+      <div class="charts-area" style="grid-template-columns:1fr;">
+        <div class="chart-panel" style="grid-column:1/-1;">
+          <h3 id="monthly-chart-title"><span class="th">ยอดขายรายเดือน</span> <span class="ja">月間売上・来店者数</span></h3>
+          <div class="chart-container" id="monthly-chart" style="min-height:220px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SETTINGS VIEW ========== -->
+  <div id="settings-view" class="view">
+    <div class="settings-container">
+      <div class="settings-section">
+        <h3><span class="th">นำเข้าเมนู</span> <span class="ja">メニューインポート</span></h3>
+        <p class="settings-desc"><span class="th">อัปโหลดไฟล์ CSV จาก Google Sheets</span><br><span class="ja">Google
+            SheetsからCSVファイルをアップロード</span></p>
+        <p class="settings-desc"><small>CSV形式: id, category, name, name_ja, price</small></p>
+        <div class="settings-actions">
+          <label class="file-btn">
+            <span class="th">เลือกไฟล์ CSV</span>
+            <span class="ja">CSVファイルを選択</span>
+            <input type="file" id="csv-import" accept=".csv" hidden>
+          </label>
+          <span id="import-status" class="import-status"></span>
+        </div>
+        <div id="menu-preview" class="menu-preview"></div>
+      </div>
+
+      <div class="settings-section">
+        <h3><span class="th">Google Sheets Sync</span> <span class="ja">Google Sheets同期</span></h3>
+        <p class="settings-desc"><span class="th">กรอก URL ของ Google Apps Script</span><br><span class="ja">Google Apps
+            ScriptのURLを入力</span></p>
+        <div class="settings-input-group">
+          <input type="url" id="sheets-url" placeholder="https://script.google.com/macros/s/..." class="settings-input">
+          <button id="save-sheets-url" class="btn btn-primary">
+            <span class="th">บันทึก</span><span class="ja">保存</span>
+          </button>
+          <button id="test-sync" class="btn btn-secondary">
+            <span class="th">ทดสอบ</span><span class="ja">テスト</span>
+          </button>
+          <button id="fetch-menu" class="btn btn-secondary">
+            <span class="th">ดึงเมนู</span><span class="ja">メニュー同期</span>
+          </button>
+        </div>
+        <span id="sync-status" class="sync-status"></span>
+      </div>
+
+      <div class="settings-section">
+        <h3><span class="th">ข้อมูล</span> <span class="ja">データ管理</span></h3>
+        <div class="settings-actions">
+          <button id="export-csv" class="btn btn-secondary">
+            <span class="th">ส่งออก CSV</span><span class="ja">CSVエクスポート</span>
+          </button>
+          <button id="clear-today" class="btn btn-danger">
+            <span class="th">ล้างข้อมูลวันนี้</span><span class="ja">本日のデータをクリア</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3><span class="th">เมนูปัจจุบัน</span> <span class="ja">現在のメニュー</span></h3>
+        <div id="current-menu-list" class="current-menu-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CHECK-IN MODAL ========== -->
+  <div id="checkin-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><span class="th">เช็คอิน</span> <span class="ja">入店処理</span> — <span id="checkin-table-id"></span></h2>
+        <button class="modal-close" onclick="closeModal('checkin-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Guest Matrix: Nationality (rows) × Gender (columns) -->
+        <div class="form-group">
+          <label><span class="th">จำนวนลูกค้า</span> <span class="ja">来店者入力</span> — <span class="th">รวม:</span><span
+              class="ja">合計:</span> <strong id="guest-total">0</strong> <span class="th">คน</span></label>
+        </div>
+        <div class="guest-matrix">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>♀<br><small>หญิง</small><br><small class="ja">女</small></th>
+                <th>♂<br><small>ชาย</small><br><small class="ja">男</small></th>
+                <th>⚧<br><small>อื่นๆ</small><br><small class="ja">他</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-nat="ไทย">
+                <td class="nat-label">🇹🇭 <span class="th">ไทย</span> <span class="ja">タイ</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+              <tr data-nat="ญี่ปุ่น">
+                <td class="nat-label">🇯🇵 <span class="th">ญี่ปุ่น</span> <span class="ja">日本</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+              <tr data-nat="จีน">
+                <td class="nat-label">🇨🇳 <span class="th">จีน</span> <span class="ja">中国</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+              <tr data-nat="เกาหลี">
+                <td class="nat-label">🇰🇷 <span class="th">เกาหลี</span> <span class="ja">韓国</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+              <tr data-nat="ฝรั่ง">
+                <td class="nat-label">🌍 <span class="th">ฝรั่ง</span> <span class="ja">ファラン</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+              <tr data-nat="อื่นๆ">
+                <td class="nat-label">🌐 <span class="th">อื่นๆ</span> <span class="ja">その他</span></td>
+                <td><button class="cell-btn" data-g="female" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="male" onclick="cellIncrement(this)">0</button></td>
+                <td><button class="cell-btn" data-g="other" onclick="cellIncrement(this)">0</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="matrix-hint"><span class="th">แตะเพื่อเพิ่ม / กดค้างเพื่อลด</span> <span class="ja">タップで+1 /
+              長押しで-1</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="closeModal('checkin-modal')">
+          <span class="th">ยกเลิก</span><span class="ja">キャンセル</span>
+        </button>
+        <button class="btn btn-primary" id="confirm-checkin">
+          <span class="th">เช็คอิน</span><span class="ja">入店確定</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== ORDER PANEL (replaces detail panel) ========== -->
+  <template id="order-panel-template">
+    <div class="order-panel">
+      <div class="order-header">
+        <h2><span id="order-table-id"></span></h2>
+        <div class="order-meta">
+          <span class="th">เช็คอิน:</span><span class="ja">入店:</span> <span id="order-checkin-time"></span>
+          <span class="sep">|</span>
+          <span id="order-guest-info"></span>
+        </div>
+      </div>
+
+      <!-- Menu Selection -->
+      <div class="menu-area">
+        <div class="menu-categories" id="menu-categories"></div>
+        <div class="menu-items" id="menu-items"></div>
+      </div>
+
+      <!-- Current Order -->
+      <div class="order-list-area">
+        <h3><span class="th">รายการสั่ง</span> <span class="ja">注文リスト</span></h3>
+        <div class="order-items" id="order-items"></div>
+        <div class="order-total">
+          <span><span class="th">รวม</span><span class="ja">合計</span></span>
+          <span class="total-value" id="order-total">฿0</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="order-actions">
+        <button class="btn btn-pay" id="btn-payment">
+          <span class="th">ชำระเงิน</span><span class="ja">会計</span>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ========== PAYMENT MODAL ========== -->
+  <div id="payment-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><span class="th">ชำระเงิน</span> <span class="ja">会計</span> — <span id="payment-table-id"></span></h2>
+        <button class="modal-close" onclick="closeModal('payment-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="payment-total">
+          <span class="th">ยอดรวม</span><span class="ja">合計金額</span>
+          <div class="payment-total-value" id="payment-total-value">฿0</div>
+        </div>
+        <div class="form-group">
+          <label><span class="th">ช่องทางชำระเงิน</span> <span class="ja">支払方法</span></label>
+          <div class="payment-methods">
+            <button class="pay-method-btn" data-method="cash">
+              <span class="pay-icon">💵</span>
+              <span class="th">เงินสด</span><span class="ja">現金</span>
+            </button>
+            <button class="pay-method-btn" data-method="qr">
+              <span class="pay-icon">📱</span>
+              <span class="th">QR</span><span class="ja">QR</span>
+            </button>
+            <button class="pay-method-btn" data-method="card">
+              <span class="pay-icon">💳</span>
+              <span class="th">บัตร</span><span class="ja">カード</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="closeModal('payment-modal')">
+          <span class="th">ยกเลิก</span><span class="ja">キャンセル</span>
+        </button>
+        <button class="btn btn-success" id="confirm-payment" disabled>
+          <span class="th">ชำระแล้ว</span><span class="ja">精算済み</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST NOTIFICATION ========== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
