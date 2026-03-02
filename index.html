@@ -15,6 +15,33 @@
 
 <body>
 
+  <!-- ========== PIN LOCK SCREEN ========== -->
+  <div id="pin-lock" class="pin-lock-overlay">
+    <div class="pin-lock-box">
+      <div class="pin-lock-logo">🍜 MENLABO POS</div>
+      <div class="pin-lock-label">PIN コード入力</div>
+      <div class="pin-dots" id="pin-dots">
+        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span
+          class="pin-dot"></span>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-keypad">
+        <button class="pin-key" data-key="1">1</button>
+        <button class="pin-key" data-key="2">2</button>
+        <button class="pin-key" data-key="3">3</button>
+        <button class="pin-key" data-key="4">4</button>
+        <button class="pin-key" data-key="5">5</button>
+        <button class="pin-key" data-key="6">6</button>
+        <button class="pin-key" data-key="7">7</button>
+        <button class="pin-key" data-key="8">8</button>
+        <button class="pin-key" data-key="9">9</button>
+        <button class="pin-key" disabled></button>
+        <button class="pin-key" data-key="0">0</button>
+        <button class="pin-key pin-key-del" data-key="del">⌫</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ========== NAVIGATION BAR ========== -->
   <nav id="navbar">
     <div class="nav-left">
@@ -98,7 +125,6 @@
         <div class="legend">
           <span class="legend-item"><span class="dot available"></span>ว่าง<small>空席</small></span>
           <span class="legend-item"><span class="dot occupied"></span>กำลังใช้<small>利用中</small></span>
-          <span class="legend-item"><span class="dot pending"></span>รอชำระ<small>会計待ち</small></span>
         </div>
 
         <!-- Multi-select Action Bar -->

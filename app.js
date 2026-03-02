@@ -2,6 +2,57 @@
    MENLABO POS — Application Logic
    ============================================================ */
 
+// ==================== PIN LOCK ====================
+const PIN_CODE = '2024';
+let _pinInput = '';
+
+function initPinLock() {
+  // If already unlocked this session, skip
+  if (sessionStorage.getItem('menlabo_unlocked') === 'true') {
+    document.getElementById('pin-lock').classList.add('unlocked');
+    return;
+  }
+
+  document.querySelectorAll('.pin-key').forEach(key => {
+    key.addEventListener('click', () => {
+      const val = key.dataset.key;
+      if (!val) return;
+
+      if (val === 'del') {
+        _pinInput = _pinInput.slice(0, -1);
+      } else if (_pinInput.length < 4) {
+        _pinInput += val;
+      }
+
+      // Update dots
+      const dots = document.querySelectorAll('.pin-dot');
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < _pinInput.length);
+        dot.classList.remove('error');
+      });
+      document.getElementById('pin-error').textContent = '';
+
+      // Check PIN when 4 digits entered
+      if (_pinInput.length === 4) {
+        if (_pinInput === PIN_CODE) {
+          sessionStorage.setItem('menlabo_unlocked', 'true');
+          document.getElementById('pin-lock').classList.add('unlocked');
+        } else {
+          // Wrong PIN
+          dots.forEach(dot => dot.classList.add('error'));
+          document.getElementById('pin-error').textContent = 'PINが違います';
+          setTimeout(() => {
+            _pinInput = '';
+            dots.forEach(dot => {
+              dot.classList.remove('filled', 'error');
+            });
+          }, 600);
+        }
+      }
+    });
+  });
+}
+
 // ==================== STATE ====================
 const APP = {
   tables: [],
@@ -50,6 +101,7 @@ const SAMPLE_MENU = [
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+  initPinLock();
   loadState();
   initTables();
   initNavigation();
@@ -194,7 +246,7 @@ function initSeatButtons() {
         if (APP.activeOrder) resetOrderPanel();
         // Toggle selection for multi-select
         toggleSeatSelection(tableId);
-      } else if (table.status === 'occupied' || table.status === 'pending') {
+      } else if (table.status === 'occupied') {
         // Clear any selection
         clearSelection();
         // Find the primary table (first in group) to show order
@@ -266,7 +318,7 @@ let _longPressed = false;
 
 function initCheckinModal() {
   // Confirm check-in
-  document.getElementById('confirm-checkin').addEventListener('click', confirmCheckin);
+  document.getElementById('confirm-checkin').addEventListener('click', confirmCheckinOrEdit);
 
   // Long-press to decrement cells
   document.querySelectorAll('.cell-btn').forEach(btn => {
@@ -453,6 +505,15 @@ function showOrderPanel(tableId) {
   }
   document.getElementById('order-guest-info').textContent = guestText;
 
+  // Add edit guests button
+  const guestInfoEl = document.getElementById('order-guest-info');
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✏️';
+  editBtn.title = 'ゲスト人数を修正';
+  editBtn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:14px;padding:2px 8px;margin-left:8px;color:var(--text-secondary);';
+  editBtn.addEventListener('click', () => editGuests(tableId));
+  guestInfoEl.parentNode.insertBefore(editBtn, guestInfoEl.nextSibling);
+
   // Render categories
   renderMenuCategories();
   // Render order items
@@ -465,6 +526,81 @@ function showOrderPanel(tableId) {
   document.querySelectorAll('.seat-btn').forEach(btn => {
     btn.style.outline = groupIds.includes(btn.dataset.id) ? '3px solid var(--accent)' : 'none';
   });
+}
+
+function editGuests(tableId) {
+  const table = APP.tables.find(t => t.id === tableId);
+  if (!table || !table.order) return;
+
+  APP._editingGuestsTableId = tableId;
+
+  // Reset matrix
+  document.querySelectorAll('.matrix-btn').forEach(btn => {
+    btn.textContent = '0';
+    btn.classList.remove('has-value');
+  });
+
+  // Pre-fill matrix with current values
+  const g = table.order.guests;
+  if (g.nationalities) {
+    Object.entries(g.nationalities).forEach(([nat, vals]) => {
+      ['female', 'male', 'other'].forEach(gender => {
+        const btn = document.querySelector(`.matrix-btn[data-nat="${nat}"][data-gender="${gender}"]`);
+        if (btn && vals[gender] > 0) {
+          btn.textContent = vals[gender];
+          btn.classList.add('has-value');
+        }
+      });
+    });
+  }
+
+  // Open modal
+  document.getElementById('checkin-modal').classList.remove('hidden');
+}
+
+// Override confirm checkin to handle edit mode
+function confirmCheckinOrEdit() {
+  if (APP._editingGuestsTableId) {
+    const tableId = APP._editingGuestsTableId;
+    const table = APP.tables.find(t => t.id === tableId);
+    if (!table || !table.order) return;
+
+    const matrix = readMatrix();
+    if (matrix.total === 0) {
+      showToast('⚠️ กรุณาเลือกจำนวนลูกค้า / 来店者を入力してください');
+      return;
+    }
+
+    const nats = Object.entries(matrix.nationalities);
+    const primaryNat = nats.length > 0
+      ? nats.sort((a, b) => b[1].total - a[1].total)[0][0]
+      : 'อื่นๆ';
+
+    // Update guest info on the existing order
+    table.order.guests = {
+      total: matrix.total,
+      male: matrix.male,
+      female: matrix.female,
+      other: matrix.other,
+      nationalities: matrix.nationalities
+    };
+    table.order.nationality = primaryNat;
+
+    // Update all tables in the group
+    const groupIds = table.order.tableIds || [tableId];
+    groupIds.forEach(id => {
+      const t = APP.tables.find(x => x.id === id);
+      if (t && t.order) t.order = table.order;
+    });
+
+    APP._editingGuestsTableId = null;
+    saveState();
+    closeModal('checkin-modal');
+    showOrderPanel(tableId);
+    showToast('✅ ข้อมูลลูกค้าอัปเดตแล้ว / ゲスト情報を更新しました');
+  } else {
+    confirmCheckin();
+  }
 }
 
 function renderMenuCategories() {
@@ -620,12 +756,8 @@ function openPaymentModal(tableId) {
   document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('confirm-payment').disabled = true;
 
-  // Change status to pending for ALL tables in the group
+  // Keep occupied status during payment
   const groupIds = table.order.tableIds || [tableId];
-  groupIds.forEach(id => {
-    const t = APP.tables.find(x => x.id === id);
-    if (t) t.status = 'pending';
-  });
   saveState();
   renderFloor();
 
