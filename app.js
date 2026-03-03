@@ -786,8 +786,13 @@ function confirmPayment() {
   // Move to completed orders
   APP.orders.push({ ...table.order });
 
-  // Sync to Google Sheets
-  syncToSheets(table.order);
+  // Delay sync to Google Sheets — wait for undo window (8s) to expire before sending
+  if (APP._pendingSyncTimer) clearTimeout(APP._pendingSyncTimer);
+  const orderCopy = JSON.parse(JSON.stringify(table.order));
+  APP._pendingSyncTimer = setTimeout(() => {
+    syncToSheets(orderCopy);
+    APP._pendingSyncTimer = null;
+  }, 8500);
 
   // Reset ALL tables in the group
   const groupIds = table.order.tableIds || [tableId];
@@ -904,6 +909,12 @@ function undoPayment() {
     showToast('⏰ 取消期限が切れています（5分以内）');
     APP._lastPayment = null;
     return;
+  }
+
+  // Cancel pending sync to Google Sheets (prevent duplicate)
+  if (APP._pendingSyncTimer) {
+    clearTimeout(APP._pendingSyncTimer);
+    APP._pendingSyncTimer = null;
   }
 
   const { order, tableIds } = APP._lastPayment;
