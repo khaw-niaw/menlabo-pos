@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSelectionBar();
   initCheckinModal();
   initPaymentModal();
+  initUndoBar();
   initSettings();
   renderFloor();
   updateDashboard();
@@ -520,6 +521,8 @@ function showOrderPanel(tableId) {
   renderOrderItems();
   // Payment button
   document.getElementById('btn-payment').addEventListener('click', () => openPaymentModal(tableId));
+  // Clear order button
+  document.getElementById('btn-clear-order').addEventListener('click', () => clearAllOrderItems(tableId));
 
   // Highlight ALL tables in the group
   const groupIds = table.order.tableIds || [tableId];
@@ -789,6 +792,14 @@ function confirmPayment() {
   // Reset ALL tables in the group
   const groupIds = table.order.tableIds || [tableId];
   const displayId = groupIds.join(' + ');
+
+  // Save undo data BEFORE resetting tables — deep copy to preserve items
+  APP._lastPayment = {
+    order: JSON.parse(JSON.stringify(table.order)),
+    tableIds: [...groupIds],
+    timestamp: Date.now()
+  };
+
   groupIds.forEach(id => {
     const t = APP.tables.find(x => x.id === id);
     if (t) {
@@ -819,7 +830,11 @@ function confirmPayment() {
     btn.style.outline = 'none';
   });
 
-  showToast(`✅ ${displayId} ชำระเงินเรียบร้อย / 精算完了`);
+  showToast(`✅ ${displayId} 精算完了`);
+
+  // Show undo bar
+  showUndoBar(displayId);
+
   updateDashboard();
 }
 
@@ -836,15 +851,123 @@ function adjustCount(elementId, delta) {
 }
 
 // ==================== TOAST ====================
-function showToast(message) {
+function showToast(message, duration = 2500) {
   const toast = document.getElementById('toast');
-  toast.textContent = message;
+  toast.innerHTML = message;
   toast.classList.remove('hidden');
   requestAnimationFrame(() => toast.classList.add('show'));
-  setTimeout(() => {
+  if (showToast._timer) clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.classList.add('hidden'), 300);
-  }, 2500);
+  }, duration);
+}
+
+// ==================== CLEAR ALL ORDER ITEMS ====================
+function clearAllOrderItems(tableId) {
+  if (!APP.activeOrder || APP.activeOrder.items.length === 0) return;
+  if (!confirm('注文を全てクリアしますか？')) return;
+
+  APP.activeOrder.items = [];
+  APP.activeOrder.total = 0;
+  saveState();
+  renderOrderItems();
+  showToast('🗑️ 注文をクリアしました');
+}
+
+// ==================== UNDO BAR ====================
+function initUndoBar() {
+  document.getElementById('undo-bar-btn').addEventListener('click', () => {
+    undoPayment();
+    document.getElementById('undo-bar').classList.add('hidden');
+  });
+}
+
+function showUndoBar(displayId) {
+  const bar = document.getElementById('undo-bar');
+  document.getElementById('undo-bar-text').textContent = `${displayId} の精算を取り消しますか？`;
+  bar.classList.remove('hidden');
+
+  // Auto-hide after 8 seconds
+  if (showUndoBar._timer) clearTimeout(showUndoBar._timer);
+  showUndoBar._timer = setTimeout(() => {
+    bar.classList.add('hidden');
+  }, 8000);
+}
+
+// ==================== UNDO PAYMENT ====================
+function undoPayment() {
+  if (!APP._lastPayment) return;
+
+  // Check if within 5 minutes
+  if (Date.now() - APP._lastPayment.timestamp > 5 * 60 * 1000) {
+    showToast('⏰ 取消期限が切れています（5分以内）');
+    APP._lastPayment = null;
+    return;
+  }
+
+  const { order, tableIds } = APP._lastPayment;
+
+  // Remove from completed orders
+  APP.orders = APP.orders.filter(o => o.orderId !== order.orderId);
+
+  // Restore order to occupied status
+  order.status = 'active';
+  order.checkOutTime = null;
+  order.paymentMethod = null;
+
+  // Re-assign to tables
+  tableIds.forEach(id => {
+    const table = APP.tables.find(t => t.id === id);
+    if (table) {
+      table.status = 'occupied';
+      table.order = order;
+    }
+  });
+
+  APP._lastPayment = null;
+  saveState();
+  renderFloor();
+  updateDashboard();
+  showOrderPanel(tableIds[0]);
+  showToast('↩️ 精算を取り消しました — テーブルを復元');
+}
+
+// ==================== RETRY SYNC QUEUE ====================
+async function retrySyncQueue() {
+  const queue = JSON.parse(localStorage.getItem('menlabo_sync_queue') || '[]');
+  if (queue.length === 0) {
+    showToast('✅ 送信待ちデータはありません');
+    return;
+  }
+  if (!APP.settings.sheetsUrl) {
+    showToast('⚠️ Google Sheets URLが未設定です');
+    return;
+  }
+
+  showToast(`📤 ${queue.length}件を再送信中...`);
+  const failed = [];
+
+  for (const payload of queue) {
+    try {
+      await fetch(APP.settings.sheetsUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      failed.push(payload);
+    }
+  }
+
+  localStorage.setItem('menlabo_sync_queue', JSON.stringify(failed));
+
+  if (failed.length === 0) {
+    showToast('✅ 全データの送信に成功しました');
+  } else {
+    showToast(`⚠️ ${failed.length}件の送信に失敗しました`);
+  }
 }
 
 // ==================== GOOGLE SHEETS SYNC ====================
@@ -913,6 +1036,7 @@ async function syncToSheets(order) {
     const queue = JSON.parse(localStorage.getItem('menlabo_sync_queue') || '[]');
     queue.push(payload);
     localStorage.setItem('menlabo_sync_queue', JSON.stringify(queue));
+    showToast(`⚠️ データ送信失敗 — オフラインキューに保存(${queue.length}件) <button onclick="retrySyncQueue()" style="background:none;border:1px solid var(--yellow);color:var(--yellow);border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:8px;">再送</button>`, 10000);
   }
 }
 

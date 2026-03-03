@@ -1298,15 +1298,50 @@ label .ja {
   z-index: 2000;
   opacity: 0;
   transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
 }
 
 .toast.hidden {
   display: none;
+}
+
+/* ---------- Undo Payment Bar ---------- */
+.undo-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--bg-secondary);
+  border-top: 2px solid var(--yellow);
+  z-index: 3000;
+  animation: slide-up 0.3s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.undo-bar span {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* ---------- Guest Matrix Table ---------- */

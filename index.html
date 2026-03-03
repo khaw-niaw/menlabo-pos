@@ -385,8 +385,11 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="order-actions">
-        <button class="btn btn-pay" id="btn-payment">
+      <div class="order-actions" style="display:flex;gap:8px;">
+        <button class="btn btn-danger" id="btn-clear-order" style="padding:12px 16px;">
+          <span class="th">ล้างรายการ</span><span class="ja">注文クリア</span>
+        </button>
+        <button class="btn btn-pay" id="btn-payment" style="flex:1;">
           <span class="th">ชำระเงิน</span><span class="ja">会計</span>
         </button>
       </div>
@@ -436,6 +439,13 @@
 
   <!-- ========== TOAST NOTIFICATION ========== -->
   <div id="toast" class="toast hidden"></div>
+
+  <!-- ========== UNDO PAYMENT BAR ========== -->
+  <div id="undo-bar" class="undo-bar hidden">
+    <span id="undo-bar-text">精算を取り消しますか？</span>
+    <button id="undo-bar-btn" class="btn"
+      style="background:var(--yellow);color:var(--bg-primary);padding:8px 20px;font-weight:700;">↩️ 取消</button>
+  </div>
 
   <script src="app.js"></script>
 </body>
